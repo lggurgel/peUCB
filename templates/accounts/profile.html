@@ -4,7 +4,7 @@
 
 {% block content %}
   <h1>Perfil</h1>
-  <p class="muted">{{ user.email }} · {% if profile.is_generator %}estabelecimento{% else %}coletador{% endif %}. O papel não muda depois do cadastro.</p>
+  <p class="muted">{{ user.email }} · {% if profile.is_generator %}estabelecimento{% elif profile.is_collector %}coletador{% else %}acompanhamento{% endif %}. O papel não muda depois do cadastro.</p>
   <form method="post" class="sheet">
     {% csrf_token %}
     {{ form.non_field_errors }}
@@ -29,7 +29,7 @@
       {{ form.latitude.errors }}
       <p class="muted">Clique no mapa para ajustar o ponto.</p>
       <div id="pin-map" class="map"></div>
-    {% else %}
+    {% elif profile.is_collector %}
       <div class="field">
         {{ form.collector_kind.label_tag }}
         {{ form.collector_kind }}

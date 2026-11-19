@@ -125,8 +125,11 @@ class ProfileForm(forms.ModelForm):
         if self.instance.is_generator:
             for name in ("phone", "collector_kind"):
                 self.fields.pop(name, None)
-        else:
+        elif self.instance.is_collector:
             for name in ("organization_name", "address", "latitude", "longitude"):
+                self.fields.pop(name, None)
+        else:
+            for name in ("phone", "collector_kind", "organization_name", "address", "latitude", "longitude"):
                 self.fields.pop(name, None)
 
     def clean(self):

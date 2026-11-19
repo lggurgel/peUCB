@@ -14,7 +14,11 @@
     <nav class="nav">
       <a href="{% url 'window_list' %}">Janelas</a>
       {% if user.is_authenticated %}
-        <a href="{% url 'mine' %}">Minhas</a>
+        {% if profile.is_reviewer %}
+          <a href="{% url 'records' %}">Registros</a>
+        {% else %}
+          <a href="{% url 'mine' %}">Minhas</a>
+        {% endif %}
         {% if profile.is_generator %}
           <a href="{% url 'window_create' %}">Publicar</a>
         {% endif %}

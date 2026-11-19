@@ -115,13 +115,38 @@ class PilotSeedTests(TestCase):
         self.assertEqual(window.agreement.collector.display_name, "Lucas Gabriel de Oliveira Gurgel")
         self.assertFalse(User.objects.filter(email="coletador@example.com").exists())
 
+        second = CollectionWindow.objects.get(scheduled_date=date(2026, 11, 18), scheduled_time=time(9, 0))
+        self.assertEqual(second.status, CollectionWindow.Status.COMPLETED)
+        self.assertEqual(second.estimated_volume, "cerca de 2 sacos")
+        self.assertEqual(second.agreement.collector, window.agreement.collector)
+        published = timezone.localtime(second.created_at)
+        confirmed = timezone.localtime(second.agreement.confirmed_at)
+        self.assertEqual((published.year, published.month, published.day, published.hour, published.minute), (2026, 11, 17, 11, 20))
+        self.assertEqual((confirmed.year, confirmed.month, confirmed.day, confirmed.hour, confirmed.minute), (2026, 11, 17, 14, 5))
+
+        visit = User.objects.get(email="bistrozin.visita@example.com")
+        self.assertFalse(visit.has_usable_password())
+        self.assertEqual(visit.profile.organization_name, "Bistrozin")
+        self.assertEqual(visit.profile.windows.count(), 0)
+
         home = self.client.get("/")
         self.assertContains(home, "Coleta realizada")
         self.assertContains(home, "Publicada em 07/11/2026 às 16:00")
         self.assertContains(home, "Coleta em 08/11/2026 às 10:00")
+        self.assertContains(home, "Publicada em 17/11/2026 às 11:20")
+        self.assertContains(home, "Coleta em 18/11/2026 às 09:00")
+        self.assertContains(home, "Bistrozin")
         self.assertContains(home, "Realizada")
         self.assertNotContains(home, "Lucas")
         self.assertNotContains(home, "98636")
+        self.assertNotContains(home, "Pendência")
+        pins = {pin["name"]: pin for pin in generator_pins()}
+        self.assertEqual(set(pins), {
+            "Informal Distribuidora de Bebidas e Conveniência",
+            "Bistrozin",
+        })
+        self.assertFalse(pins["Informal Distribuidora de Bebidas e Conveniência"]["pending"])
+        self.assertFalse(pins["Bistrozin"]["pending"])
         self.assertContains(home, '"pending": false')
 
         lucas = User.objects.get(email="lucas.gurgel@a.ucb.br")
@@ -138,11 +163,40 @@ class PilotSeedTests(TestCase):
         anonymous = self.client.get(f"/windows/{window.pk}/")
         self.assertNotContains(anonymous, "Lucas")
         self.assertContains(anonymous, "Publicada em")
+        self.client.force_login(lucas)
+        refused = self.client.get("/windows/records/", follow=True)
+        self.assertContains(refused, "Os registros completos ficam na conta de acompanhamento.")
+        self.assertNotContains(refused, "98636")
+
+        reviewer = User.objects.get(email="acompanhamento@example.com")
+        self.assertTrue(reviewer.check_password("extensao2026"))
+        self.client.force_login(reviewer)
+        detail = self.client.get(f"/windows/{window.pk}/")
+        self.assertContains(detail, "Lucas Gabriel de Oliveira Gurgel")
+        self.assertNotContains(detail, "98636")
+        records = self.client.get("/windows/records/")
+        self.assertContains(records, "Lucas Gabriel de Oliveira Gurgel")
+        self.assertContains(records, "cerca de 3 sacos")
+        self.assertContains(records, "cerca de 2 sacos")
+        self.assertContains(records, "Bistrozin")
+        self.assertContains(records, "só o cadastro, sem janela")
+        self.assertContains(records, "07/11/2026 às 18:40")
+        self.assertContains(records, "17/11/2026 às 14:05")
+        self.assertNotContains(records, "98636")
+        self.assertNotContains(records, "bistrozin.visita@example.com")
+        profile = self.client.get("/accounts/profile/")
+        self.assertContains(profile, "acompanhamento")
+        self.assertNotContains(profile, "Telefone")
 
     def test_pin_is_pending_only_while_a_window_is_still_open_or_reserved(self):
         call_command("seed_demo")
         informal = Profile.objects.get(user__email="informal@example.com")
-        self.assertFalse(generator_pins()[0]["pending"])
+
+        def pending(name):
+            return {pin["name"]: pin["pending"] for pin in generator_pins()}[name]
+
+        self.assertFalse(pending("Informal Distribuidora de Bebidas e Conveniência"))
+        self.assertFalse(pending("Bistrozin"))
         extra = CollectionWindow.objects.create(
             generator=informal,
             materials="pet",
@@ -151,14 +205,16 @@ class PilotSeedTests(TestCase):
             scheduled_time=time(9, 0),
             status=CollectionWindow.Status.OPEN,
         )
-        self.assertTrue(generator_pins()[0]["pending"])
+        self.assertTrue(pending("Informal Distribuidora de Bebidas e Conveniência"))
+        self.assertFalse(pending("Bistrozin"))
         extra.status = CollectionWindow.Status.RESERVED
         extra.save(update_fields=["status"])
         Agreement.objects.create(
             window=extra,
             collector=Profile.objects.get(user__email="lucas.gurgel@a.ucb.br"),
         )
-        self.assertTrue(generator_pins()[0]["pending"])
+        self.assertTrue(pending("Informal Distribuidora de Bebidas e Conveniência"))
         extra.status = CollectionWindow.Status.COMPLETED
         extra.save(update_fields=["status"])
-        self.assertFalse(generator_pins()[0]["pending"])
+        self.assertFalse(pending("Informal Distribuidora de Bebidas e Conveniência"))
+        self.assertFalse(pending("Bistrozin"))

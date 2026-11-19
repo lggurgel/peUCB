@@ -15,4 +15,7 @@
   {% if window.generator.address %}
     <p class="muted">{{ window.generator.address }}</p>
   {% endif %}
+  {% if show_agreement and window.agreement %}
+    <p class="muted">Confirmada por {{ window.agreement.collector.display_name }} em {{ window.agreement.confirmed_at|date:"d/m/Y" }} às {{ window.agreement.confirmed_at|time:"H:i" }}.</p>
+  {% endif %}
 </article>

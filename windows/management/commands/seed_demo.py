@@ -2,18 +2,25 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from django.core.management.base import BaseCommand
+from django.db.models import Q
 
 from accounts.models import Profile, User
 from windows.models import Agreement, CollectionWindow
 
 INFORMAL_PASSWORD = "demo1234"
 LUCAS_PASSWORD = "janela2026"
+REVIEWER_PASSWORD = "extensao2026"
 GENERATOR_EMAIL = "informal@example.com"
 LUCAS_EMAIL = "lucas.gurgel@a.ucb.br"
+REVIEWER_EMAIL = "acompanhamento@example.com"
+BISTROZIN_EMAIL = "bistrozin.visita@example.com"
 OLD_DEMO_COLLECTOR_EMAIL = "coletador@example.com"
 # Approximate pin for Rua 19 Norte, Águas Claras. The generator can drag it in the profile.
 INFORMAL_LAT = "-15.833500"
 INFORMAL_LNG = "-48.025600"
+# Approximate pin for Rua 24 Norte, lote 13, loja 6, near Águas Claras station.
+BISTROZIN_LAT = "-15.838450"
+BISTROZIN_LNG = "-48.028650"
 TZ = ZoneInfo("America/Sao_Paulo")
 
 
@@ -21,13 +28,16 @@ def at(year, month, day, hour, minute):
     return datetime(year, month, day, hour, minute, tzinfo=TZ)
 
 
-PUBLISHED_AT = at(2026, 11, 7, 16, 0)
-CONFIRMED_AT = at(2026, 11, 7, 18, 40)
-COLLECTED_ON = at(2026, 11, 8, 10, 0)
+WEEK7_PUBLISHED = at(2026, 11, 7, 16, 0)
+WEEK7_CONFIRMED = at(2026, 11, 7, 18, 40)
+WEEK7_COLLECTED = at(2026, 11, 8, 10, 0)
+WEEK8_PUBLISHED = at(2026, 11, 17, 11, 20)
+WEEK8_CONFIRMED = at(2026, 11, 17, 14, 5)
+WEEK8_COLLECTED = at(2026, 11, 18, 9, 0)
 
 
 class Command(BaseCommand):
-    help = "Create Informal, Lucas as collector, and the completed pilot window."
+    help = "Create the pilot history through 19/11/2026, the visit registration, and the review account."
 
     def handle(self, *args, **options):
         generator = self._profile(
@@ -48,40 +58,74 @@ class Command(BaseCommand):
             collector_kind=Profile.CollectorKind.INDIVIDUAL,
             phone="(61) 98636-4324",
         )
+        self._profile(
+            email=REVIEWER_EMAIL,
+            password=REVIEWER_PASSWORD,
+            display_name="Acompanhamento acadêmico",
+            role=Profile.Role.REVIEWER,
+        )
+        # Visit only. No window, and no password, so the place stays a map pin.
+        self._profile(
+            email=BISTROZIN_EMAIL,
+            display_name="Cadastro de visita",
+            role=Profile.Role.GENERATOR,
+            usable_password=False,
+            organization_name="Bistrozin",
+            address="Rua 24 Norte, Lote 13, Loja 6, Águas Claras, Brasília-DF",
+            latitude=BISTROZIN_LAT,
+            longitude=BISTROZIN_LNG,
+        )
         self._remove_old_demo()
-        self._pilot(generator, lucas)
-        self.stdout.write("Piloto de 07 e 08/11/2026 gravado.")
+        self._completed(
+            generator,
+            lucas,
+            published=WEEK7_PUBLISHED,
+            confirmed=WEEK7_CONFIRMED,
+            collected=WEEK7_COLLECTED,
+            volume="cerca de 3 sacos",
+            notes="Entrada pela loja 13.",
+        )
+        self._completed(
+            generator,
+            lucas,
+            published=WEEK8_PUBLISHED,
+            confirmed=WEEK8_CONFIRMED,
+            collected=WEEK8_COLLECTED,
+            volume="cerca de 2 sacos",
+            notes="Entrada pela loja 13. Material separado do orgânico.",
+        )
+        self.stdout.write("Base até 19/11/2026 gravada.")
 
-    def _pilot(self, generator, lucas):
+    def _completed(self, generator, collector, *, published, confirmed, collected, volume, notes):
         window = CollectionWindow.objects.filter(
             generator=generator,
-            scheduled_date=COLLECTED_ON.date(),
-            scheduled_time=COLLECTED_ON.time(),
+            scheduled_date=collected.date(),
+            scheduled_time=collected.time(),
         ).first()
         if window is None:
             window = CollectionWindow.objects.create(
                 generator=generator,
                 materials="pet,can,glass,cardboard",
-                estimated_volume="cerca de 3 sacos",
-                scheduled_date=COLLECTED_ON.date(),
-                scheduled_time=COLLECTED_ON.time(),
-                access_notes="Entrada pela loja 13.",
+                estimated_volume=volume,
+                scheduled_date=collected.date(),
+                scheduled_time=collected.time(),
+                access_notes=notes,
                 status=CollectionWindow.Status.COMPLETED,
             )
         CollectionWindow.objects.filter(pk=window.pk).update(
             materials="pet,can,glass,cardboard",
-            estimated_volume="cerca de 3 sacos",
-            access_notes="Entrada pela loja 13.",
+            estimated_volume=volume,
+            access_notes=notes,
             status=CollectionWindow.Status.COMPLETED,
-            created_at=PUBLISHED_AT,
+            created_at=published,
         )
         agreement = Agreement.objects.filter(window=window).first()
         if agreement is None:
-            agreement = Agreement.objects.create(window=window, collector=lucas)
-        elif agreement.collector_id != lucas.id:
-            agreement.collector = lucas
+            agreement = Agreement.objects.create(window=window, collector=collector)
+        elif agreement.collector_id != collector.id:
+            agreement.collector = collector
             agreement.save(update_fields=["collector"])
-        Agreement.objects.filter(pk=agreement.pk).update(confirmed_at=CONFIRMED_AT)
+        Agreement.objects.filter(pk=agreement.pk).update(confirmed_at=confirmed)
 
     def _remove_old_demo(self):
         # Only the retired demo account is removed. Volume text is not a key:
@@ -95,16 +139,22 @@ class Command(BaseCommand):
                 Agreement.objects.filter(collector=profile).values_list("window_id", flat=True)
             )
             Agreement.objects.filter(collector=profile).delete()
-            CollectionWindow.objects.filter(pk__in=window_ids).exclude(
-                scheduled_date=COLLECTED_ON.date(),
-                scheduled_time=COLLECTED_ON.time(),
-            ).delete()
+            keep = Q()
+            for day, clock in (
+                (WEEK7_COLLECTED.date(), WEEK7_COLLECTED.time()),
+                (WEEK8_COLLECTED.date(), WEEK8_COLLECTED.time()),
+            ):
+                keep |= Q(scheduled_date=day, scheduled_time=clock)
+            CollectionWindow.objects.filter(pk__in=window_ids).exclude(keep).delete()
         demo.delete()
 
-    def _profile(self, email, password, display_name, role, **fields):
+    def _profile(self, email, password=None, display_name="", role=Profile.Role.GENERATOR, usable_password=True, **fields):
         user = User.objects.filter(email=email).first()
         if user is None:
-            user = User.objects.create_user(email=email, password=password)
+            user = User.objects.create_user(email=email, password=password or "unused-password")
+            if not usable_password:
+                user.set_unusable_password()
+                user.save(update_fields=["password"])
         profile = Profile.objects.filter(user=user).first()
         if profile is None:
             return Profile.objects.create(

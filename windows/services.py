@@ -55,4 +55,6 @@ def can_see_agreement(profile, window):
     agreement = Agreement.objects.filter(window=window).first()
     if agreement is None:
         return False
+    if profile.is_reviewer:
+        return True
     return profile.id in {window.generator_id, agreement.collector_id}

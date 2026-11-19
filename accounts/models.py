@@ -39,6 +39,7 @@ class Profile(models.Model):
     class Role(models.TextChoices):
         GENERATOR = "generator", "Generator"
         COLLECTOR = "collector", "Collector"
+        REVIEWER = "reviewer", "Reviewer"
 
     class CollectorKind(models.TextChoices):
         INDIVIDUAL = "individual", "Individual"
@@ -70,3 +71,7 @@ class Profile(models.Model):
     @property
     def is_collector(self):
         return self.role == self.Role.COLLECTOR
+
+    @property
+    def is_reviewer(self):
+        return self.role == self.Role.REVIEWER

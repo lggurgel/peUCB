@@ -10,6 +10,17 @@
   {{ pins|json_script:"generators-data" }}
   <div id="overview-map" class="map" role="region" aria-label="Mapa dos estabelecimentos em Brasília"></div>
   <p class="muted map-note">Pontos em Brasília e entorno. O pino mostra o estabelecimento, não o coletador.</p>
+  {% if pins %}
+    <ul class="place-list">
+      {% for pin in pins %}
+        <li>
+          <strong>{{ pin.name }}</strong>
+          — {{ pin.address }}.
+          {% if pin.pending %}Há coleta a buscar.{% else %}Só a localidade, sem pendência.{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
   <section>
     <div class="section-head">
       <h2>Janelas abertas</h2>

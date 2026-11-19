@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Registros · Janela de Coleta{% endblock %}
+
+{% block content %}
+  <h1>Registros do projeto</h1>
+  <p>Conta de acompanhamento acadêmico. Esta tela reúne a geração publicada pelos estabelecimentos e a coleta confirmada: material, volume, dia, hora e quem reservou. O telefone não aparece.</p>
+  <p class="muted">Em 19/11/2026 fecham as duas semanas de piloto do cronograma (7 a 18/11) e começa a devolutiva. O Bistrozin está só cadastrado, sem janela.</p>
+
+  <section>
+    <h2>Estabelecimentos</h2>
+    <ul class="place-list">
+      {% for place in generators %}
+        <li>
+          <strong>{{ place.public_name }}</strong>
+          — {{ place.address }}
+          {% if place.window_count %}
+            · {{ place.window_count }} janela{{ place.window_count|pluralize:"s" }}
+          {% else %}
+            · só o cadastro, sem janela
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <section>
+    <h2>Resumo</h2>
+    <ul class="place-list">
+      {% for label, count in status_rows %}
+        <li>{{ label }}: {{ count }}</li>
+      {% endfor %}
+      {% for label, count in material_rows %}
+        <li>{{ label }} em {{ count }} janela{{ count|pluralize:"s" }}</li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <section>
+    <h2>Janelas</h2>
+    {% if windows %}
+      <div class="stack">
+        {% for window in windows %}
+          {% include "windows/_card.html" %}
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="empty">Nenhuma janela registrada.</p>
+    {% endif %}
+  </section>
+{% endblock %}

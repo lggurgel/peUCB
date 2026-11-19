@@ -8,8 +8,14 @@ O mapa mostra só estabelecimentos, em Brasília e entorno. Telefone do coletado
 
 - Estabelecimento: `informal@example.com` — senha `demo1234` — Informal, Águas Claras
 - Coletador: `lucas.gurgel@a.ucb.br` — senha `janela2026` — Lucas Gabriel de Oliveira Gurgel, pessoa física
+- Acompanhamento: `acompanhamento@example.com` — senha `extensao2026` — vê todos os estabelecimentos e todas as janelas. Não publica, não confirma e não vê telefone. É a conta para citar quando um professor entrar no site.
 
-O telefone do coletador fica no cadastro e não aparece nas telas. O start grava a coleta do piloto: publicada em 07/11/2026 às 16:00, confirmada por Lucas às 18:40, realizada em 08/11/2026 às 10:00.
+O telefone do coletador fica no cadastro e não aparece nas telas. O start grava o piloto das semanas 7 e 8 do cronograma, até 19/11/2026:
+
+- 07/11/2026 às 16:00, confirmada por Lucas às 18:40, coleta em 08/11/2026 às 10:00, cerca de 3 sacos, realizada
+- 17/11/2026 às 11:20, confirmada por Lucas às 14:05, coleta em 18/11/2026 às 09:00, cerca de 2 sacos, material separado do orgânico, realizada
+
+O Bistrozin (Rua 24 Norte, lote 13, loja 6) entra só como cadastro de visita. Não tem senha e não tem janela. O mapa mostra os dois estabelecimentos. Sem janela aberta, o pino fica só com a localidade.
 
 ## Subir na sua máquina
 

@@ -118,6 +118,9 @@ main { max-width: 960px; margin: 0 auto; padding-top: 1.25rem; padding-bottom: 2
 .map-note, .muted { color: var(--muted); }
 .map-note { margin-top: 0; }
 
+.place-list { list-style: none; padding: 0; margin: 0.2rem 0 1.2rem; }
+.place-list li { padding: 0.45rem 0; border-bottom: 1px solid var(--line); }
+
 .pin-icon.leaflet-div-icon {
   background: none;
   border: 0;

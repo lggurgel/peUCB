@@ -1,11 +1,15 @@
+from collections import Counter
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
+from django.db.models import Count
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods, require_POST
 
+from accounts.models import Profile
 from windows.forms import WindowForm
-from windows.models import MATERIAL_LABELS, CollectionWindow
+from windows.models import MATERIAL_LABELS, STATUS_LABELS, CollectionWindow
 from windows.queries import filter_by_material, generator_pins, open_windows
 from windows.services import WindowActionError, can_see_agreement, close_window, confirm_window
 
@@ -90,8 +94,49 @@ def window_create(request):
 
 
 @login_required
+def records(request):
+    profile = getattr(request.user, "profile", None)
+    if profile is None or not profile.is_reviewer:
+        messages.error(request, "Os registros completos ficam na conta de acompanhamento.")
+        return redirect("home")
+    generators = (
+        Profile.objects.filter(role=Profile.Role.GENERATOR)
+        .annotate(window_count=Count("windows"))
+        .order_by("organization_name", "display_name")
+    )
+    windows = (
+        CollectionWindow.objects.select_related("generator", "agreement__collector")
+        .order_by("-scheduled_date", "-scheduled_time")
+    )
+    status_counts = Counter(windows.values_list("status", flat=True))
+    material_counts = Counter()
+    for codes in windows.values_list("materials", flat=True):
+        for code in codes.split(","):
+            if code in MATERIAL_LABELS:
+                material_counts[code] += 1
+    return render(
+        request,
+        "windows/records.html",
+        {
+            "generators": generators,
+            "windows": windows,
+            "show_agreement": True,
+            "status_rows": [
+                (STATUS_LABELS[status], status_counts[status])
+                for status, _label in CollectionWindow.Status.choices
+            ],
+            "material_rows": [
+                (label, material_counts[code]) for code, label in MATERIAL_LABELS.items()
+            ],
+        },
+    )
+
+
+@login_required
 def mine(request):
     profile = request.user.profile
+    if profile.is_reviewer:
+        return redirect("records")
     if profile.is_generator:
         windows = profile.windows.select_related("generator").order_by("-scheduled_date", "-scheduled_time")
     else:
