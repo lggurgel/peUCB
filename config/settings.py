@@ -27,6 +27,16 @@ if railway_domain:
     if railway_origin not in CSRF_TRUSTED_ORIGINS:
         CSRF_TRUSTED_ORIGINS.append(railway_origin)
 
+# Railway's health check and the public domain use hosts that are not known
+# until the service exists. The leading dot matches those subdomains.
+if os.environ.get("RAILWAY_ENVIRONMENT"):
+    for host in (".up.railway.app", ".railway.app"):
+        if host not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append(host)
+    private_domain = os.environ.get("RAILWAY_PRIVATE_DOMAIN", "").strip()
+    if private_domain and private_domain not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(private_domain)
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -86,9 +96,11 @@ def database_from_env():
         "HOST": parsed.hostname or "",
         "PORT": parsed.port or 5432,
     }
+    options = {"connect_timeout": 5}
     sslmode = parse_qs(parsed.query).get("sslmode", [""])[0]
     if sslmode:
-        config["OPTIONS"] = {"sslmode": sslmode}
+        options["sslmode"] = sslmode
+    config["OPTIONS"] = options
     return config
 
 

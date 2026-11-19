@@ -14,7 +14,7 @@ fi
 i=0
 until python manage.py migrate --noinput; do
   i=$((i + 1))
-  if [ "$i" -gt 30 ]; then
+  if [ "$i" -gt 90 ]; then
     echo "O banco não ficou pronto a tempo."
     exit 1
   fi

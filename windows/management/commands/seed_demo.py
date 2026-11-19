@@ -48,7 +48,7 @@ class Command(BaseCommand):
             collector_kind=Profile.CollectorKind.INDIVIDUAL,
             phone="(61) 98636-4324",
         )
-        self._remove_old_demo(generator)
+        self._remove_old_demo()
         self._pilot(generator, lucas)
         self.stdout.write("Piloto de 07 e 08/11/2026 gravado.")
 
@@ -83,12 +83,9 @@ class Command(BaseCommand):
             agreement.save(update_fields=["collector"])
         Agreement.objects.filter(pk=agreement.pk).update(confirmed_at=CONFIRMED_AT)
 
-    def _remove_old_demo(self, generator):
-        CollectionWindow.objects.filter(
-            generator=generator,
-            estimated_volume="cerca de 2 sacos",
-        ).delete()
-        CollectionWindow.objects.filter(estimated_volume="1 fardo").delete()
+    def _remove_old_demo(self):
+        # Only the retired demo account is removed. Volume text is not a key:
+        # deleting by it would erase a real collection on every restart.
         demo = User.objects.filter(email=OLD_DEMO_COLLECTOR_EMAIL).first()
         if demo is None:
             return
