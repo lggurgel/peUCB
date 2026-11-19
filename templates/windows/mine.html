@@ -1,22 +1,28 @@
 {% extends "base.html" %}
+{% load window_tags %}
 
 {% block title %}Minhas janelas · Janela de Coleta{% endblock %}
+
+{% block page_class %}narrow{% endblock %}
 
 {% block content %}
   <h1>{% if profile.is_generator %}Minhas janelas{% else %}Minhas reservas{% endif %}</h1>
   {% if windows %}
-    <div class="stack">
+    <div class="list">
       {% for window in windows %}
         {% include "windows/_card.html" %}
       {% endfor %}
     </div>
   {% else %}
-    <p class="empty">
+    <div class="empty">
+      {% icon "calendar" %}
       {% if profile.is_generator %}
-        Você ainda não publicou uma janela.
+        <strong>Você ainda não publicou uma janela.</strong>
+        <a class="btn" href="{% url 'window_create' %}">{% icon "plus" %} Publicar janela</a>
       {% else %}
-        Você ainda não confirmou uma janela.
+        <strong>Você ainda não confirmou uma janela.</strong>
+        <a class="btn" href="{% url 'home' %}#janelas">Ver janelas abertas</a>
       {% endif %}
-    </p>
+    </div>
   {% endif %}
 {% endblock %}

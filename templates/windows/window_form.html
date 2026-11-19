@@ -1,20 +1,31 @@
 {% extends "base.html" %}
+{% load window_tags %}
 
 {% block title %}Publicar janela · Janela de Coleta{% endblock %}
 
+{% block page_class %}narrow{% endblock %}
+
 {% block content %}
-  <h1>Publicar janela</h1>
-  <p class="muted">Quem confirmar primeiro fica com o horário. A reserva não cobra e não paga.</p>
-  <form method="post" class="sheet">
+  <header class="page-head">
+    <div>
+      <h1>Publicar janela</h1>
+      <p class="muted">Quem confirmar primeiro fica com o horário. A reserva não cobra e não paga.</p>
+    </div>
+  </header>
+  <form method="post" class="box form">
     {% csrf_token %}
     {{ form.non_field_errors }}
-    {% for field in form %}
-      <div class="field">
-        {{ field.label_tag }}
-        {{ field }}
-        {{ field.errors }}
-      </div>
-    {% endfor %}
-    <button type="submit">Publicar</button>
+    <fieldset class="field">
+      <legend>{{ form.materials.label }}</legend>
+      <div class="choices">{{ form.materials }}</div>
+      {{ form.materials.errors }}
+    </fieldset>
+    {% include "_field.html" with field=form.estimated_volume %}
+    <div class="row-2">
+      {% include "_field.html" with field=form.scheduled_date %}
+      {% include "_field.html" with field=form.scheduled_time %}
+    </div>
+    {% include "_field.html" with field=form.access_notes %}
+    <button type="submit" class="btn">{% icon "plus" %} Publicar</button>
   </form>
 {% endblock %}

@@ -2,70 +2,45 @@
 
 {% block title %}Cadastrar · Janela de Coleta{% endblock %}
 
+{% block page_class %}narrow{% endblock %}
+
 {% block content %}
   <h1>Cadastrar</h1>
-  <form method="post" class="sheet">
+  <form method="post" class="box form">
     {% csrf_token %}
     {{ form.non_field_errors }}
-    <fieldset>
+    <fieldset class="field">
       <legend>{{ form.role.label }}</legend>
-      {{ form.role }}
+      <div class="choices">{{ form.role }}</div>
       {{ form.role.errors }}
     </fieldset>
-    <div class="field">
-      {{ form.display_name.label_tag }}
-      {{ form.display_name }}
-      {{ form.display_name.errors }}
-    </div>
-    <div class="field">
-      {{ form.email.label_tag }}
-      {{ form.email }}
-      {{ form.email.errors }}
-    </div>
-    <div class="field">
-      {{ form.password.label_tag }}
-      {{ form.password }}
-      {{ form.password.errors }}
-    </div>
-    <div class="field">
-      {{ form.password_confirm.label_tag }}
-      {{ form.password_confirm }}
-      {{ form.password_confirm.errors }}
+    {% include "_field.html" with field=form.display_name %}
+    {% include "_field.html" with field=form.email %}
+    <div class="row-2">
+      {% include "_field.html" with field=form.password %}
+      {% include "_field.html" with field=form.password_confirm %}
     </div>
 
-    <fieldset id="generator-fields" hidden>
+    <fieldset id="generator-fields" class="group" hidden>
       <legend>Estabelecimento</legend>
+      {% include "_field.html" with field=form.organization_name %}
+      {% include "_field.html" with field=form.address %}
       <div class="field">
-        {{ form.organization_name.label_tag }}
-        {{ form.organization_name }}
-        {{ form.organization_name.errors }}
+        {{ form.latitude }}
+        {{ form.longitude }}
+        <p class="muted small">Clique no mapa para marcar o ponto em Brasília.</p>
+        <div id="pin-map" class="map pin-map"></div>
+        {{ form.latitude.errors }}
       </div>
-      <div class="field">
-        {{ form.address.label_tag }}
-        {{ form.address }}
-        {{ form.address.errors }}
-      </div>
-      {{ form.latitude }}
-      {{ form.longitude }}
-      {{ form.latitude.errors }}
-      <p class="muted">Clique no mapa para marcar o ponto em Brasília.</p>
-      <div id="pin-map" class="map"></div>
     </fieldset>
 
-    <fieldset id="collector-fields" hidden>
+    <fieldset id="collector-fields" class="group" hidden>
       <legend>Coletador</legend>
-      <div class="field">
-        {{ form.collector_kind.label_tag }}
-        {{ form.collector_kind }}
-        {{ form.collector_kind.errors }}
-      </div>
-      <div class="field">
-        {{ form.phone.label_tag }}
-        {{ form.phone }}
-        {{ form.phone.errors }}
-      </div>
+      {% include "_field.html" with field=form.collector_kind %}
+      {% include "_field.html" with field=form.phone %}
     </fieldset>
 
-    <button type="submit">Criar conta</button>
+    <button type="submit" class="btn">Criar conta</button>
   </form>
+  <p class="muted">Já tem conta? <a href="{% url 'login' %}">Entre</a>.</p>
 {% endblock %}

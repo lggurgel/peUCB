@@ -1,0 +1,34 @@
+{% load window_tags %}
+<nav class="filter" aria-label="Filtrar por material">
+  {% for item in filters %}
+    <a href="{{ item.url }}" {% if item.active %}aria-current="true"{% endif %}>{{ item.label }}</a>
+  {% endfor %}
+</nav>
+{% if selected_generator %}
+  <p class="filter-note">
+    Só as janelas de <strong>{{ selected_generator.public_name }}</strong>.
+    <a href="{{ all_generators_url }}">Ver todas</a>
+  </p>
+{% endif %}
+{% if page.object_list %}
+  <div class="list">
+    {% for window in page %}
+      {% include "windows/_card.html" %}
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="empty">
+    {% icon "calendar" %}
+    <strong>{% if material or selected_generator %}Nenhuma janela aberta com esse filtro.{% else %}Nenhuma janela aberta no momento.{% endif %}</strong>
+    {% if profile.is_generator %}
+      <p class="muted small">Publique a próxima coleta para ela aparecer aqui e no mapa.</p>
+    {% endif %}
+  </div>
+{% endif %}
+{% if page.paginator.num_pages > 1 %}
+  <nav class="pager" aria-label="Páginas">
+    {% if previous_url %}<a class="btn ghost" href="{{ previous_url }}">Anterior</a>{% endif %}
+    <span class="muted small">{{ page.number }} / {{ page.paginator.num_pages }}</span>
+    {% if next_url %}<a class="btn ghost" href="{{ next_url }}">Próxima</a>{% endif %}
+  </nav>
+{% endif %}

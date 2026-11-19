@@ -71,3 +71,8 @@ class Agreement(models.Model):
 
     def __str__(self):
         return f"{self.collector.display_name} -> {self.window_id}"
+
+    @property
+    def wait(self):
+        """Time between the publication of the window and this confirmation."""
+        return self.confirmed_at - self.window.created_at

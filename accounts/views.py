@@ -1,3 +1,4 @@
+from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render
@@ -25,5 +26,6 @@ def profile_edit(request):
     form = ProfileForm(request.POST or None, instance=profile)
     if request.method == "POST" and form.is_valid():
         form.save()
+        messages.success(request, "Perfil salvo.")
         return redirect("profile")
     return render(request, "accounts/profile.html", {"form": form})

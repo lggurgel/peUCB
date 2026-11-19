@@ -1,3 +1,5 @@
+import csv
+import io
 from datetime import date, time, timedelta
 from decimal import Decimal
 
@@ -8,8 +10,9 @@ from django.utils import timezone
 
 from accounts.models import Profile, User
 from windows.models import Agreement, CollectionWindow
-from windows.queries import generator_pins
+from windows.queries import format_wait, generator_pins
 from windows.services import WindowActionError, confirm_window
+from windows.views import CSV_COLUMNS
 
 
 class ConfirmationRuleTests(TestCase):
@@ -241,3 +244,156 @@ class PilotSeedTests(TestCase):
         informal.refresh_from_db()
         self.assertEqual(informal.latitude, Decimal("-15.840000"))
         self.assertEqual(informal.longitude, Decimal("-48.020000"))
+
+
+class ExploreAndRecordsTests(TestCase):
+    INFORMAL = "Informal Distribuidora de Bebidas e Conveniência"
+
+    def setUp(self):
+        call_command("seed_demo", stdout=io.StringIO())
+        self.informal = Profile.objects.get(user__email="informal@example.com")
+        self.bistrozin = Profile.objects.get(user__email="bistrozin.visita@example.com")
+        self.lucas = User.objects.get(email="lucas.gurgel@a.ucb.br")
+        self.reviewer = User.objects.get(email="acompanhamento@example.com")
+        self.week7 = CollectionWindow.objects.get(scheduled_date=date(2026, 11, 8))
+        when = timezone.localtime() + timedelta(days=2)
+        self.open = CollectionWindow.objects.create(
+            generator=self.informal,
+            materials="pet,can",
+            estimated_volume="1 saco",
+            scheduled_date=when.date(),
+            scheduled_time=when.time().replace(microsecond=0),
+        )
+
+    def _csv_rows(self):
+        self.client.force_login(self.reviewer)
+        response = self.client.get("/windows/records.csv")
+        self.assertEqual(response.status_code, 200)
+        text = response.content.decode("utf-8")
+        self.assertTrue(text.startswith("\ufeff"))
+        rows = list(csv.reader(io.StringIO(text.lstrip("\ufeff")), delimiter=";"))
+        return text, rows
+
+    def test_explorar_counts_what_anyone_can_already_see(self):
+        response = self.client.get("/")
+        self.assertEqual(response.context["counts"], {"open": 1, "places": 2, "completed": 2})
+        self.open.status = CollectionWindow.Status.RESERVED
+        self.open.save(update_fields=["status"])
+        response = self.client.get("/")
+        self.assertEqual(response.context["counts"], {"open": 0, "places": 2, "completed": 2})
+
+    def test_material_chip_narrows_the_list_and_keeps_every_establishment(self):
+        response = self.client.get("/?material=can")
+        self.assertEqual(list(response.context["page"]), [self.open])
+        self.assertContains(response, 'href="?material=can#janelas" aria-current="true"')
+
+        response = self.client.get("/?material=glass")
+        self.assertEqual(list(response.context["page"]), [])
+        self.assertContains(response, "Nenhuma janela aberta com esse filtro.")
+        self.assertEqual(response.context["counts"]["open"], 1)
+        self.assertEqual({pin["name"] for pin in response.context["pins"]}, {self.INFORMAL, "Bistrozin"})
+        self.assertContains(response, "Bistrozin")
+
+        response = self.client.get("/?material=plutonium")
+        self.assertEqual(list(response.context["page"]), [self.open])
+
+    def test_pin_link_lists_one_establishment_on_explorar(self):
+        pins = {pin["name"]: pin for pin in generator_pins()}
+        self.assertEqual(pins[self.INFORMAL]["url"], f"/?generator={self.informal.pk}#janelas")
+        response = self.client.get(f"/?generator={self.informal.pk}")
+        self.assertEqual(list(response.context["page"]), [self.open])
+        self.assertContains(response, "Só as janelas de")
+        response = self.client.get(f"/?generator={self.bistrozin.pk}")
+        self.assertEqual(list(response.context["page"]), [])
+        # Not an establishment, or not a number the database can hold: the filter is ignored.
+        for value in (self.lucas.profile.pk, "9" * 40, "abc"):
+            response = self.client.get(f"/?generator={value}")
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(list(response.context["page"]), [self.open])
+
+    def test_wait_is_shown_only_where_the_agreement_is(self):
+        wait = "2 h 40 min"
+        url = f"/windows/{self.week7.pk}/"
+        self.assertNotContains(self.client.get("/"), wait)
+        anonymous = self.client.get(url)
+        self.assertNotContains(anonymous, wait)
+        self.assertNotContains(anonymous, "07/11/2026 às 18:40")
+        self.assertContains(anonymous, "Reservada por um coletador")
+
+        other = User.objects.create_user(email="outro@example.com", password="demo1234")
+        Profile.objects.create(
+            user=other,
+            role=Profile.Role.COLLECTOR,
+            display_name="Outro",
+            collector_kind=Profile.CollectorKind.INDIVIDUAL,
+        )
+        self.client.force_login(other)
+        self.assertNotContains(self.client.get(url), wait)
+
+        for user in (self.lucas, self.informal.user, self.reviewer):
+            self.client.force_login(user)
+            self.assertContains(self.client.get(url), f"{wait} depois da publicação")
+
+        records = self.client.get("/windows/records/")
+        self.assertContains(records, wait)
+        self.assertContains(records, "2 h 45 min")
+        self.assertEqual(records.context["summary"]["average_wait"], "2 h 43 min")
+        self.assertEqual(records.context["summary"]["total"], 3)
+        self.assertEqual(records.context["summary"]["closed"], 2)
+        self.assertEqual(records.context["summary"]["places_with_windows"], 1)
+
+    def test_day_names_stay_in_portuguese_for_a_browser_in_another_language(self):
+        response = self.client.get(f"/windows/{self.week7.pk}/", headers={"accept-language": "en"})
+        self.assertContains(response, "Domingo às 10:00")
+        self.assertNotContains(response, "Sunday")
+
+    def test_wait_is_written_in_days_hours_and_minutes(self):
+        self.assertEqual(format_wait(timedelta(minutes=5)), "5 min")
+        self.assertEqual(format_wait(timedelta(seconds=20)), "0 min")
+        self.assertEqual(format_wait(timedelta(hours=2)), "2 h")
+        self.assertEqual(format_wait(timedelta(hours=2, minutes=40)), "2 h 40 min")
+        self.assertEqual(format_wait(timedelta(days=1, hours=3, minutes=5)), "1 d 3 h 5 min")
+        self.assertEqual(format_wait(timedelta(minutes=-5)), "")
+        self.assertEqual(format_wait(None), "")
+
+    def test_csv_export_is_only_for_the_review_account(self):
+        response = self.client.get("/windows/records.csv")
+        self.assertRedirects(response, "/accounts/login/?next=/windows/records.csv")
+        for user in (self.lucas, self.informal.user):
+            self.client.force_login(user)
+            response = self.client.get("/windows/records.csv", follow=True)
+            self.assertContains(response, "Os registros completos ficam na conta de acompanhamento.")
+            self.assertNotIn("text/csv", response["Content-Type"])
+
+    def test_csv_export_has_every_window_and_no_contact_data(self):
+        text, rows = self._csv_rows()
+        self.assertEqual(rows[0], CSV_COLUMNS)
+        self.assertEqual(len(rows), 4)
+        by_date = {row[2]: dict(zip(CSV_COLUMNS, row)) for row in rows[1:]}
+        week7 = by_date["08/11/2026"]
+        self.assertEqual(week7["Estabelecimento"], self.INFORMAL)
+        self.assertEqual(week7["Hora da coleta"], "10:00")
+        self.assertEqual(week7["Materiais"], "PET, Lata, Vidro, Papelão")
+        self.assertEqual(week7["Volume estimado"], "cerca de 3 sacos")
+        self.assertEqual(week7["Situação"], "Realizada")
+        self.assertEqual(week7["Publicada em"], "07/11/2026 16:00")
+        self.assertEqual(week7["Confirmada por"], "Lucas Gabriel de Oliveira Gurgel")
+        self.assertEqual(week7["Tipo de coletador"], "Pessoa física")
+        self.assertEqual(week7["Confirmada em"], "07/11/2026 18:40")
+        self.assertEqual(week7["Espera até a confirmação (min)"], "160")
+        self.assertEqual(by_date["18/11/2026"]["Espera até a confirmação (min)"], "165")
+        still_open = by_date[self.open.scheduled_date.strftime("%d/%m/%Y")]
+        self.assertEqual(still_open["Situação"], "Aberta")
+        self.assertEqual(still_open["Confirmada por"], "")
+        self.assertEqual(still_open["Espera até a confirmação (min)"], "")
+        self.assertNotIn("98636", text)
+        self.assertNotIn("@", text)
+
+    def test_csv_export_does_not_let_typed_text_run_as_a_formula(self):
+        self.open.estimated_volume = "=2+3"
+        self.open.access_notes = "@portaria; tocar o interfone"
+        self.open.save(update_fields=["estimated_volume", "access_notes"])
+        _text, rows = self._csv_rows()
+        row = dict(zip(CSV_COLUMNS, rows[1]))
+        self.assertEqual(row["Volume estimado"], "'=2+3")
+        self.assertEqual(row["Observação de acesso"], "'@portaria; tocar o interfone")

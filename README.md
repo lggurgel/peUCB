@@ -8,7 +8,7 @@ O mapa mostra só estabelecimentos, em Brasília e entorno. Telefone do coletado
 
 - Estabelecimento: `informal@example.com` — senha `demo1234` — Informal, Águas Claras
 - Coletador: `lucas.gurgel@a.ucb.br` — senha `janela2026` — Lucas Gabriel de Oliveira Gurgel, pessoa física
-- Acompanhamento: `acompanhamento@example.com` — senha `extensao2026` — vê todos os estabelecimentos e todas as janelas. Não publica, não confirma e não vê telefone. É a conta para citar quando um professor entrar no site.
+- Acompanhamento: `acompanhamento@example.com` — senha `extensao2026` — vê todos os estabelecimentos e todas as janelas, com os números do piloto, e baixa os registros em CSV (sem telefone e sem e-mail). Não publica, não confirma e não vê telefone. É a conta para citar quando um professor entrar no site.
 
 O telefone do coletador fica no cadastro e não aparece nas telas. O start grava o piloto das semanas 7 e 8 do cronograma, até 19/11/2026:
 
