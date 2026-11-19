@@ -2,37 +2,12 @@
 
 {% block title %}Janelas abertas · Janela de Coleta{% endblock %}
 
+{% block page_class %}narrow{% endblock %}
+
 {% block content %}
-  <h1>Janelas abertas</h1>
-  <form class="filters" method="get" action="{% url 'window_list' %}">
-    {% if generator_id %}<input type="hidden" name="generator" value="{{ generator_id }}">{% endif %}
-    <label for="material">Material</label>
-    <select id="material" name="material">
-      <option value="">Todos</option>
-      {% for code, label in materials.items %}
-        <option value="{{ code }}" {% if material == code %}selected{% endif %}>{{ label }}</option>
-      {% endfor %}
-    </select>
-    <button type="submit">Filtrar</button>
-  </form>
-  {% if page.object_list %}
-    <div class="stack">
-      {% for window in page %}
-        {% include "windows/_card.html" %}
-      {% endfor %}
-    </div>
-  {% else %}
-    <p class="empty">Nenhuma janela aberta com esse filtro.</p>
-  {% endif %}
-  {% if page.paginator.num_pages > 1 %}
-    <nav class="pager" aria-label="Páginas">
-      {% if page.has_previous %}
-        <a href="?material={{ material }}&amp;generator={{ generator_id }}&amp;page={{ page.previous_page_number }}">Anterior</a>
-      {% endif %}
-      <span>{{ page.number }} / {{ page.paginator.num_pages }}</span>
-      {% if page.has_next %}
-        <a href="?material={{ material }}&amp;generator={{ generator_id }}&amp;page={{ page.next_page_number }}">Próxima</a>
-      {% endif %}
-    </nav>
-  {% endif %}
+  <header class="page-head" id="janelas">
+    <h1>Janelas abertas</h1>
+    <a href="{% url 'home' %}">Ver no mapa</a>
+  </header>
+  {% include "windows/_open_list.html" %}
 {% endblock %}

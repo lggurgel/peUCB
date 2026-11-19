@@ -1,51 +1,120 @@
 {% extends "base.html" %}
+{% load window_tags %}
 
 {% block title %}Registros · Janela de Coleta{% endblock %}
 
 {% block content %}
-  <h1>Registros do projeto</h1>
-  <p>Conta de acompanhamento acadêmico. Esta tela reúne a geração publicada pelos estabelecimentos e a coleta confirmada: material, volume, dia, hora e quem reservou. O telefone não aparece.</p>
-  <p class="muted">Em 19/11/2026 fecham as duas semanas de piloto do cronograma (7 a 18/11) e começa a devolutiva. O Bistrozin está só cadastrado, sem janela.</p>
+  <header class="page-head">
+    <div>
+      <h1>Registros do projeto</h1>
+      <p class="muted">Conta de acompanhamento acadêmico. Esta tela reúne a geração publicada pelos estabelecimentos e a coleta confirmada: material, volume, dia, hora e quem reservou. O telefone não aparece.</p>
+    </div>
+    <a class="btn ghost" href="{% url 'records_csv' %}" download>{% icon "download" %} Exportar CSV</a>
+  </header>
+  <p class="callout">Em 19/11/2026 fecham as duas semanas de piloto do cronograma (7 a 18/11) e começa a devolutiva. O Bistrozin está só cadastrado, sem janela.</p>
 
-  <section>
+  <dl class="kpis">
+    <div>
+      <dt>Janelas publicadas</dt>
+      <dd>{{ summary.total }}</dd>
+    </div>
+    <div>
+      <dt>Coletas realizadas</dt>
+      <dd>{{ summary.completed }} <small>de {{ summary.closed }} encerrada{{ summary.closed|pluralize }}</small></dd>
+    </div>
+    <div>
+      <dt>Estabelecimentos</dt>
+      <dd>{{ summary.places }} <small>{{ summary.places_with_windows }} com janela</small></dd>
+    </div>
+    <div>
+      <dt>Tempo médio até a confirmação</dt>
+      <dd>{{ summary.average_wait|default:"—" }}</dd>
+    </div>
+  </dl>
+
+  <div class="two">
+    <section class="box">
+      <h2>Situação das janelas</h2>
+      <div class="bars">
+        {% for row in summary.status_rows %}
+          <div class="bar-row">
+            <span>{{ row.label }}</span>
+            <div class="bar"><i class="{{ row.key }}" style="width: {{ row.percent }}%"></i></div>
+            <b>{{ row.count }}</b>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+    <section class="box">
+      <h2>Janelas por material</h2>
+      <div class="bars">
+        {% for row in summary.material_rows %}
+          <div class="bar-row">
+            <span>{{ row.label }}</span>
+            <div class="bar"><i style="width: {{ row.percent }}%"></i></div>
+            <b>{{ row.count }}</b>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+
+  <section class="box">
+    <h2>Janelas</h2>
+    {% if windows %}
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Coleta</th>
+              <th>Estabelecimento</th>
+              <th>Materiais</th>
+              <th>Volume</th>
+              <th>Publicada</th>
+              <th>Confirmada por</th>
+              <th>Espera</th>
+              <th>Situação</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for window in windows %}
+              <tr>
+                <td data-label="Coleta"><a href="{% url 'window_detail' window.pk %}">{{ window.scheduled_date|date:"d/m/Y" }} às {{ window.scheduled_time|time:"H:i" }}</a></td>
+                <td data-label="Estabelecimento"><span>{{ window.generator.public_name }}</span></td>
+                <td data-label="Materiais"><span>{% for code in window.material_list %}{{ code|material_label }}{% if not forloop.last %}, {% endif %}{% endfor %}</span></td>
+                <td data-label="Volume" class="nowrap"><span>{{ window.estimated_volume }}</span></td>
+                <td data-label="Publicada"><span>{{ window.created_at|date:"d/m/Y" }} às {{ window.created_at|time:"H:i" }}</span></td>
+                {% if window.agreement %}
+                  <td data-label="Confirmada por"><span>{{ window.agreement.collector.display_name }}<br><span class="muted small">{{ window.agreement.confirmed_at|date:"d/m/Y" }} às {{ window.agreement.confirmed_at|time:"H:i" }}</span></span></td>
+                  <td data-label="Espera" class="nowrap"><span>{{ window.agreement.wait|wait }}</span></td>
+                {% else %}
+                  <td data-label="Confirmada por"><span class="muted">Ainda sem confirmação</span></td>
+                  <td data-label="Espera"><span class="muted">—</span></td>
+                {% endif %}
+                <td data-label="Situação"><span><span class="pill" data-status="{{ window.status }}">{{ window.status|status_label }}</span></span></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="muted">Nenhuma janela registrada.</p>
+    {% endif %}
+  </section>
+
+  <section class="box">
     <h2>Estabelecimentos</h2>
-    <ul class="place-list">
+    <ul class="places">
       {% for place in generators %}
-        <li>
-          <strong>{{ place.public_name }}</strong>
-          — {{ place.address }}
-          {% if place.window_count %}
-            · {{ place.window_count }} janela{{ place.window_count|pluralize:"s" }}
-          {% else %}
-            · só o cadastro, sem janela
-          {% endif %}
+        <li class="place">
+          <span class="place-ico">{% icon "store" %}</span>
+          <span class="place-text">
+            <strong>{{ place.public_name }}</strong>
+            <span class="muted small">{{ place.address }}</span>
+          </span>
+          <span class="tag">{% if place.window_count %}{{ place.window_count }} janela{{ place.window_count|pluralize }}{% else %}só o cadastro, sem janela{% endif %}</span>
         </li>
       {% endfor %}
     </ul>
-  </section>
-
-  <section>
-    <h2>Resumo</h2>
-    <ul class="place-list">
-      {% for label, count in status_rows %}
-        <li>{{ label }}: {{ count }}</li>
-      {% endfor %}
-      {% for label, count in material_rows %}
-        <li>{{ label }} em {{ count }} janela{{ count|pluralize:"s" }}</li>
-      {% endfor %}
-    </ul>
-  </section>
-
-  <section>
-    <h2>Janelas</h2>
-    {% if windows %}
-      <div class="stack">
-        {% for window in windows %}
-          {% include "windows/_card.html" %}
-        {% endfor %}
-      </div>
-    {% else %}
-      <p class="empty">Nenhuma janela registrada.</p>
-    {% endif %}
   </section>
 {% endblock %}

@@ -1,51 +1,71 @@
 {% extends "base.html" %}
+{% load window_tags %}
 
 {% block title %}Janela de Coleta{% endblock %}
 
-{% block content %}
-  <section class="intro">
-    <h1>Coleta combinada, sem pagamento</h1>
-    <p>O estabelecimento publica uma janela: material, volume, dia e hora. O coletador confirma. A primeira confirmação reserva o horário, e as duas partes veem o mesmo acordo.</p>
-  </section>
-  {{ pins|json_script:"generators-data" }}
-  <div id="overview-map" class="map" role="region" aria-label="Mapa dos estabelecimentos em Brasília"></div>
-  <p class="muted map-note">Pontos em Brasília e entorno. O pino mostra o estabelecimento, não o coletador.</p>
-  {% if pins %}
-    <ul class="place-list">
-      {% for pin in pins %}
-        <li>
-          <strong>{{ pin.name }}</strong>
-          — {{ pin.address }}.
-          {% if pin.pending %}Há coleta a buscar.{% else %}Só a localidade, sem pendência.{% endif %}
-        </li>
-      {% endfor %}
-    </ul>
-  {% endif %}
-  <section>
-    <div class="section-head">
-      <h2>Janelas abertas</h2>
-      <a href="{% url 'window_list' %}">Ver todas</a>
+{% block main %}
+  <main class="split">
+    {{ pins|json_script:"generators-data" }}
+    <div class="mapwrap">
+      <div id="overview-map" class="map" role="region" aria-label="Mapa dos estabelecimentos em Brasília"></div>
     </div>
-    {% if windows %}
-      <div class="stack">
-        {% for window in windows %}
-          {% include "windows/_card.html" %}
-        {% endfor %}
+    <div class="panel">
+      {% include "_messages.html" %}
+      <header class="panel-head">
+        <h1>Coleta combinada, sem pagamento</h1>
+        <p class="muted">O estabelecimento publica uma janela com material, volume, dia e hora. A primeira confirmação de um coletador reserva o horário, e as duas partes veem o mesmo acordo.</p>
+      </header>
+      <dl class="stats">
+        <div><dt>Janelas abertas</dt><dd>{{ counts.open }}</dd></div>
+        <div><dt>Estabelecimentos</dt><dd>{{ counts.places }}</dd></div>
+        <div><dt>Coletas realizadas</dt><dd>{{ counts.completed }}</dd></div>
+      </dl>
+
+      <div class="sec" id="janelas">
+        <h2>Janelas abertas</h2>
+        {% if material or selected_generator %}
+          <span class="muted small">{{ page.paginator.count }} com esse filtro</span>
+        {% endif %}
       </div>
-    {% else %}
-      <p class="empty">Nenhuma janela aberta no momento.</p>
-    {% endif %}
-  </section>
-  {% if completed %}
-    <section>
-      <div class="section-head">
-        <h2>Coleta realizada</h2>
-      </div>
-      <div class="stack">
-        {% for window in completed %}
-          {% include "windows/_card.html" %}
-        {% endfor %}
-      </div>
-    </section>
-  {% endif %}
+      {% include "windows/_open_list.html" %}
+
+      {% if pins %}
+        <div class="sec">
+          <h2>Estabelecimentos</h2>
+          <span class="muted small">Brasília e entorno</span>
+        </div>
+        <ul class="places">
+          {% for pin in pins %}
+            <li class="place" data-status="{% if pin.pending %}pending{% else %}idle{% endif %}">
+              <span class="place-ico">{% icon "store" %}</span>
+              <span class="place-text">
+                <strong>{{ pin.name }}</strong>
+                <span class="muted small">{{ pin.address }}</span>
+              </span>
+              {% if pin.open_count %}
+                <a class="tag" href="{{ pin.url }}">Coleta a buscar · ver {{ pin.open_count }} janela{{ pin.open_count|pluralize }} aberta{{ pin.open_count|pluralize }}</a>
+              {% elif pin.pending %}
+                <span class="tag">Coleta a buscar · horário já reservado</span>
+              {% else %}
+                <span class="tag">Sem pendência</span>
+              {% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+
+      {% if completed %}
+        <div class="sec">
+          <h2>Coleta realizada</h2>
+        </div>
+        <div class="list">
+          {% for window in completed %}
+            {% include "windows/_card.html" %}
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <p class="foot">{% include "_foot.html" %}. O pino mostra o estabelecimento, não o coletador.</p>
+    </div>
+  </main>
 {% endblock %}

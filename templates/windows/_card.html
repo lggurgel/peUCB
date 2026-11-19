@@ -1,21 +1,26 @@
-{% load window_tags %}
-<article class="card">
-  <div class="card-top">
-    <h2><a href="{% url 'window_detail' window.pk %}">{{ window.generator.public_name }}</a></h2>
-    <span class="status status-{{ window.status }}">{{ window.status|status_label }}</span>
-  </div>
-  <p class="when">Publicada em {{ window.created_at|date:"d/m/Y" }} às {{ window.created_at|time:"H:i" }}</p>
-  <p class="when">Coleta em {{ window.scheduled_date|date:"d/m/Y" }} às {{ window.scheduled_time|time:"H:i" }}</p>
-  <ul class="chips">
-    {% for code in window.material_list %}
-      <li>{{ code|material_label }}</li>
-    {% endfor %}
-  </ul>
-  <p>{{ window.estimated_volume }}</p>
-  {% if window.generator.address %}
-    <p class="muted">{{ window.generator.address }}</p>
-  {% endif %}
-  {% if show_agreement and window.agreement %}
-    <p class="muted">Confirmada por {{ window.agreement.collector.display_name }} em {{ window.agreement.confirmed_at|date:"d/m/Y" }} às {{ window.agreement.confirmed_at|time:"H:i" }}.</p>
-  {% endif %}
+{% load i18n window_tags %}
+<article class="card" data-status="{{ window.status }}">
+  <a href="{% url 'window_detail' window.pk %}">
+    {# The page is written in Portuguese, so the month name does not follow the browser. #}
+    <span class="date"><b>{{ window.scheduled_date|date:"d" }}</b>{% language "pt-br" %}<span>{{ window.scheduled_date|date:"M" }}</span>{% endlanguage %}</span>
+    <div class="card-body">
+      <div class="card-top">
+        <h3>{{ window.generator.public_name }}</h3>
+        <span class="pill" data-status="{{ window.status }}">{{ window.status|status_label }}</span>
+      </div>
+      <p class="when">Coleta em {{ window.scheduled_date|date:"d/m/Y" }} às {{ window.scheduled_time|time:"H:i" }}</p>
+      <ul class="chips">
+        {% for code in window.material_list %}
+          <li>{{ code|material_label }}</li>
+        {% endfor %}
+      </ul>
+      <p class="meta">
+        <span>{% icon "box" %} {{ window.estimated_volume }}</span>
+        <span>Publicada em {{ window.created_at|date:"d/m/Y" }} às {{ window.created_at|time:"H:i" }}</span>
+      </p>
+      {% if window.generator.address %}
+        <p class="meta">{{ window.generator.address }}</p>
+      {% endif %}
+    </div>
+  </a>
 </article>

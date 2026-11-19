@@ -1,51 +1,56 @@
-{% load static %}
+{% load static window_tags %}
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>{% block title %}Janela de Coleta{% endblock %}</title>
-  <link rel="stylesheet" href="{% static 'windows/site.css' %}">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <link rel="stylesheet" href="{% static 'windows/site.css' %}">
 </head>
 <body>
+  {% include "_icons.html" %}
+  {% with here=request.resolver_match.url_name %}
   <header class="top">
-    <a class="brand" href="{% url 'home' %}">Janela de Coleta</a>
-    <nav class="nav">
-      <a href="{% url 'window_list' %}">Janelas</a>
+    <a class="brand" href="{% url 'home' %}">
+      <span class="brand-mark">{% icon "pin" %}</span>
+      Janela de Coleta
+    </a>
+    {# The same links are the top bar on a wide screen and the bottom tabs on a phone. #}
+    <nav class="nav" aria-label="Principal">
+      <a href="{% url 'home' %}" {% if here == "home" or here == "window_list" or here == "window_detail" %}aria-current="page"{% endif %}>{% icon "compass" %}<span>Explorar</span></a>
       {% if user.is_authenticated %}
         {% if profile.is_reviewer %}
-          <a href="{% url 'records' %}">Registros</a>
-        {% else %}
-          <a href="{% url 'mine' %}">Minhas</a>
+          <a href="{% url 'records' %}" {% if here == "records" %}aria-current="page"{% endif %}>{% icon "chart" %}<span>Registros</span></a>
+        {% elif profile %}
+          <a href="{% url 'mine' %}" {% if here == "mine" %}aria-current="page"{% endif %}>{% icon "bookmark" %}<span>Minhas</span></a>
         {% endif %}
         {% if profile.is_generator %}
-          <a href="{% url 'window_create' %}">Publicar</a>
+          <a class="cta" href="{% url 'window_create' %}" {% if here == "window_create" %}aria-current="page"{% endif %}>{% icon "plus" %}<span>Publicar</span></a>
         {% endif %}
-        <a href="{% url 'profile' %}">Perfil</a>
-        <form method="post" action="{% url 'logout' %}">
-          {% csrf_token %}
-          <button type="submit" class="linkish">Sair</button>
-        </form>
+        {% if profile %}
+          <a href="{% url 'profile' %}" {% if here == "profile" %}aria-current="page"{% endif %}>{% icon "user" %}<span>Perfil</span></a>
+        {% endif %}
       {% else %}
-        <a href="{% url 'login' %}">Entrar</a>
-        <a class="button" href="{% url 'signup' %}">Cadastrar</a>
+        <a href="{% url 'login' %}" {% if here == "login" %}aria-current="page"{% endif %}>{% icon "login" %}<span>Entrar</span></a>
+        <a class="cta" href="{% url 'signup' %}" {% if here == "signup" %}aria-current="page"{% endif %}>{% icon "plus" %}<span>Cadastrar</span></a>
       {% endif %}
     </nav>
-  </header>
-  <main>
-    {% if messages %}
-      <ul class="messages">
-        {% for message in messages %}
-          <li class="message {{ message.tags }}">{{ message }}</li>
-        {% endfor %}
-      </ul>
+    {% if user.is_authenticated %}
+      <form class="logout" method="post" action="{% url 'logout' %}">
+        {% csrf_token %}
+        <button type="submit">{% icon "logout" %}<span>Sair</span></button>
+      </form>
     {% endif %}
-    {% block content %}{% endblock %}
-  </main>
-  <footer class="foot">
-    Protótipo de extensão · Universidade Católica de Brasília · a reserva não tem pagamento
-  </footer>
+  </header>
+  {% endwith %}
+  {% block main %}
+    <main class="page {% block page_class %}{% endblock %}">
+      {% include "_messages.html" %}
+      {% block content %}{% endblock %}
+      <p class="foot">{% include "_foot.html" %}</p>
+    </main>
+  {% endblock %}
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script src="{% static 'windows/site.js' %}"></script>
 </body>

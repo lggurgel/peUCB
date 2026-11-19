@@ -4,23 +4,18 @@ function escapeHtml(value) {
   });
 }
 
-function placeIcon() {
-  return L.divIcon({
-    className: "pin-icon",
-    html: '<span class="pin-dot"></span>',
-    iconSize: [36, 36],
-    iconAnchor: [18, 31],
-    popupAnchor: [0, -30],
-  });
+function readJson(id) {
+  var element = document.getElementById(id);
+  return element ? JSON.parse(element.textContent || "null") : null;
 }
 
-function pendingIcon() {
+function pinIcon(pending) {
   return L.divIcon({
-    className: "pin-icon pin-pending",
-    html: '<span class="pin-dot"></span><span class="pin-badge">Pendência</span>',
-    iconSize: [130, 36],
-    iconAnchor: [18, 31],
-    popupAnchor: [0, -30],
+    className: "pin" + (pending ? " pin-pending" : ""),
+    html: '<span class="pin-dot"></span>' + (pending ? '<span class="pin-badge">Coleta a buscar</span>' : ""),
+    iconSize: [36, 36],
+    iconAnchor: [18, 34],
+    popupAnchor: [0, -32],
   });
 }
 
@@ -35,28 +30,37 @@ function tileLayer() {
 
 function initOverviewMap() {
   var element = document.getElementById("overview-map");
-  var dataElement = document.getElementById("generators-data");
-  if (!element || !dataElement || typeof L === "undefined") return;
-  var points = JSON.parse(dataElement.textContent || "[]");
-  var map = L.map(element).setView([-15.8, -47.95], 11);
+  if (!element || typeof L === "undefined") return;
+  var points = readJson("generators-data") || [];
+  var map = L.map(element);
   tileLayer().addTo(map);
   var bounds = [];
   points.forEach(function (point) {
-    var marker = L.marker([point.lat, point.lng], {
-      icon: point.pending ? pendingIcon() : placeIcon(),
-    }).addTo(map);
     var stateLabel = point.pending
       ? "Há coleta a buscar."
       : "Só a localidade, sem pendência.";
-    marker.bindPopup(
-      "<strong>" + escapeHtml(point.name) + "</strong><br>" +
-      escapeHtml(point.address) + "<br>" +
-      stateLabel + "<br><a href=\"" + point.url + "\">Ver janelas</a>"
-    );
+    L.marker([point.lat, point.lng], { icon: pinIcon(point.pending), title: point.name })
+      .bindPopup(
+        "<strong>" + escapeHtml(point.name) + "</strong><br>" +
+        escapeHtml(point.address) + "<br>" +
+        stateLabel + '<br><a href="' + escapeHtml(point.url) + '">Ver janelas</a>'
+      )
+      .addTo(map);
     bounds.push([point.lat, point.lng]);
   });
-  if (bounds.length === 1) map.setView(bounds[0], 13);
-  else if (bounds.length > 1) map.fitBounds(bounds, { padding: [24, 24] });
+  if (bounds.length === 0) map.setView([-15.8, -47.95], 11);
+  else if (bounds.length === 1) map.setView(bounds[0], 15);
+  // Extra room on the right so the "Coleta a buscar" badge is not cut off.
+  else map.fitBounds(bounds, { paddingTopLeft: [40, 56], paddingBottomRight: [150, 40], maxZoom: 16 });
+}
+
+function initPlaceMap() {
+  var element = document.getElementById("place-map");
+  if (!element || typeof L === "undefined") return;
+  var place = readJson("place-data");
+  var map = L.map(element).setView(place ? [place.lat, place.lng] : [-15.8, -47.95], place ? 16 : 11);
+  tileLayer().addTo(map);
+  if (place) L.marker([place.lat, place.lng], { icon: pinIcon(false), title: place.name }).addTo(map);
 }
 
 function ensurePinMap() {
@@ -84,7 +88,7 @@ function ensurePinMap() {
 
   function place(latlng) {
     if (!marker) {
-      marker = L.marker(latlng, { draggable: true }).addTo(map);
+      marker = L.marker(latlng, { icon: pinIcon(false), draggable: true }).addTo(map);
       marker.on("dragend", function () { write(marker.getLatLng()); });
     } else {
       marker.setLatLng(latlng);
@@ -117,6 +121,7 @@ function initRoleForm() {
 
 document.addEventListener("DOMContentLoaded", function () {
   initOverviewMap();
+  initPlaceMap();
   initRoleForm();
   var pin = document.getElementById("pin-map");
   if (pin && !pin.closest("[hidden]")) ensurePinMap();
