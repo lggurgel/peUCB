@@ -45,4 +45,10 @@ Abra `http://localhost:8000`.
 
 O mapa usa OpenStreetMap. Não há chave de API para configurar.
 
+## Produção
+
+https://web-production-f5aa9bc5.up.railway.app
+
+O branch `main` publica nesse endereço. O banco é Postgres no Railway. As contas são as desta página.
+
 O bastidor em `/admin/` pede um superusuário: `python manage.py createsuperuser`.
