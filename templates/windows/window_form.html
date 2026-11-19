@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}Publicar janela · Janela de Coleta{% endblock %}
+
+{% block content %}
+  <h1>Publicar janela</h1>
+  <p class="muted">Quem confirmar primeiro fica com o horário. A reserva não cobra e não paga.</p>
+  <form method="post" class="sheet">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    {% for field in form %}
+      <div class="field">
+        {{ field.label_tag }}
+        {{ field }}
+        {{ field.errors }}
+      </div>
+    {% endfor %}
+    <button type="submit">Publicar</button>
+  </form>
+{% endblock %}

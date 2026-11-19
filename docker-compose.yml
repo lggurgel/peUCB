@@ -1,0 +1,26 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: janela
+      POSTGRES_USER: janela
+      POSTGRES_PASSWORD: janela
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgres://janela:janela@db:5432/janela
+      SECRET_KEY: dev-only-change-me
+      DEBUG: "1"
+      ALLOWED_HOSTS: localhost,127.0.0.1
+    depends_on:
+      - db
+
+volumes:
+  pgdata:

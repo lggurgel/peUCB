@@ -1,0 +1,18 @@
+{% load window_tags %}
+<article class="card">
+  <div class="card-top">
+    <h2><a href="{% url 'window_detail' window.pk %}">{{ window.generator.public_name }}</a></h2>
+    <span class="status status-{{ window.status }}">{{ window.status|status_label }}</span>
+  </div>
+  <p class="when">Publicada em {{ window.created_at|date:"d/m/Y" }} às {{ window.created_at|time:"H:i" }}</p>
+  <p class="when">Coleta em {{ window.scheduled_date|date:"d/m/Y" }} às {{ window.scheduled_time|time:"H:i" }}</p>
+  <ul class="chips">
+    {% for code in window.material_list %}
+      <li>{{ code|material_label }}</li>
+    {% endfor %}
+  </ul>
+  <p>{{ window.estimated_volume }}</p>
+  {% if window.generator.address %}
+    <p class="muted">{{ window.generator.address }}</p>
+  {% endif %}
+</article>

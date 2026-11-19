@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Minhas janelas · Janela de Coleta{% endblock %}
+
+{% block content %}
+  <h1>{% if profile.is_generator %}Minhas janelas{% else %}Minhas reservas{% endif %}</h1>
+  {% if windows %}
+    <div class="stack">
+      {% for window in windows %}
+        {% include "windows/_card.html" %}
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="empty">
+      {% if profile.is_generator %}
+        Você ainda não publicou uma janela.
+      {% else %}
+        Você ainda não confirmou uma janela.
+      {% endif %}
+    </p>
+  {% endif %}
+{% endblock %}

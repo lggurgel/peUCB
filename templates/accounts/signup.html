@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Cadastrar · Janela de Coleta{% endblock %}
+
+{% block content %}
+  <h1>Cadastrar</h1>
+  <form method="post" class="sheet">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <fieldset>
+      <legend>{{ form.role.label }}</legend>
+      {{ form.role }}
+      {{ form.role.errors }}
+    </fieldset>
+    <div class="field">
+      {{ form.display_name.label_tag }}
+      {{ form.display_name }}
+      {{ form.display_name.errors }}
+    </div>
+    <div class="field">
+      {{ form.email.label_tag }}
+      {{ form.email }}
+      {{ form.email.errors }}
+    </div>
+    <div class="field">
+      {{ form.password.label_tag }}
+      {{ form.password }}
+      {{ form.password.errors }}
+    </div>
+    <div class="field">
+      {{ form.password_confirm.label_tag }}
+      {{ form.password_confirm }}
+      {{ form.password_confirm.errors }}
+    </div>
+
+    <fieldset id="generator-fields" hidden>
+      <legend>Estabelecimento</legend>
+      <div class="field">
+        {{ form.organization_name.label_tag }}
+        {{ form.organization_name }}
+        {{ form.organization_name.errors }}
+      </div>
+      <div class="field">
+        {{ form.address.label_tag }}
+        {{ form.address }}
+        {{ form.address.errors }}
+      </div>
+      {{ form.latitude }}
+      {{ form.longitude }}
+      {{ form.latitude.errors }}
+      <p class="muted">Clique no mapa para marcar o ponto em Brasília.</p>
+      <div id="pin-map" class="map"></div>
+    </fieldset>
+
+    <fieldset id="collector-fields" hidden>
+      <legend>Coletador</legend>
+      <div class="field">
+        {{ form.collector_kind.label_tag }}
+        {{ form.collector_kind }}
+        {{ form.collector_kind.errors }}
+      </div>
+      <div class="field">
+        {{ form.phone.label_tag }}
+        {{ form.phone }}
+        {{ form.phone.errors }}
+      </div>
+    </fieldset>
+
+    <button type="submit">Criar conta</button>
+  </form>
+{% endblock %}

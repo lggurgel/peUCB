@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% load window_tags %}
+
+{% block title %}{{ window.generator.public_name }} · Janela de Coleta{% endblock %}
+
+{% block content %}
+  <article class="card detail">
+    <div class="card-top">
+      <h1>{{ window.generator.public_name }}</h1>
+      <span class="status status-{{ window.status }}">{{ window.status|status_label }}</span>
+    </div>
+    <p class="when">Coleta em {{ window.scheduled_date|date:"d/m/Y" }} às {{ window.scheduled_time|time:"H:i" }}</p>
+    <ul class="chips">
+      {% for code in window.material_list %}
+        <li>{{ code|material_label }}</li>
+      {% endfor %}
+    </ul>
+    <dl>
+      <div>
+        <dt>Publicada em</dt>
+        <dd>{{ window.created_at|date:"d/m/Y" }} às {{ window.created_at|time:"H:i" }}</dd>
+      </div>
+      <div>
+        <dt>Volume estimado</dt>
+        <dd>{{ window.estimated_volume }}</dd>
+      </div>
+      <div>
+        <dt>Endereço</dt>
+        <dd>{{ window.generator.address }}</dd>
+      </div>
+      {% if window.access_notes %}
+        <div>
+          <dt>Acesso</dt>
+          <dd>{{ window.access_notes }}</dd>
+        </div>
+      {% endif %}
+    </dl>
+
+    {% if can_see_agreement %}
+      <section class="agreement">
+        <h2>Acordo</h2>
+        <p>Coletador: {{ window.agreement.collector.display_name }}{% if window.agreement.collector.collector_kind %} · {{ window.agreement.collector.collector_kind|kind_label }}{% endif %}</p>
+        <p class="muted">Confirmado em {{ window.agreement.confirmed_at|date:"d/m/Y" }} às {{ window.agreement.confirmed_at|time:"H:i" }}.</p>
+      </section>
+    {% elif window.status != "open" %}
+      <p class="muted">Os dados de quem confirmou ficam só com o estabelecimento e o coletador desta janela.</p>
+    {% endif %}
+
+    <div class="actions">
+      {% if window.status == "open" and not window.is_past and profile.is_collector %}
+        <form method="post" action="{% url 'window_confirm' window.pk %}">
+          {% csrf_token %}
+          <button type="submit">Confirmar esta janela</button>
+        </form>
+        <p class="muted">A primeira confirmação válida reserva o horário.</p>
+      {% elif window.status == "open" and not window.is_past and not user.is_authenticated %}
+        <a class="button" href="{% url 'login' %}?next={{ request.path }}">Entre para confirmar</a>
+      {% elif window.status == "open" and window.is_past %}
+        <p class="muted">O horário desta janela já passou.</p>
+      {% endif %}
+
+      {% if can_see_agreement and profile.is_generator and window.status == "reserved" %}
+        <form method="post" action="{% url 'window_complete' window.pk %}">
+          {% csrf_token %}
+          <button type="submit">Marcar como realizada</button>
+        </form>
+        <form method="post" action="{% url 'window_miss' window.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="secondary">Marcar como não realizada</button>
+        </form>
+      {% endif %}
+    </div>
+  </article>
+{% endblock %}

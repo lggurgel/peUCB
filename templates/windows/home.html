@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Janela de Coleta{% endblock %}
+
+{% block content %}
+  <section class="intro">
+    <h1>Coleta combinada, sem pagamento</h1>
+    <p>O estabelecimento publica uma janela: material, volume, dia e hora. O coletador confirma. A primeira confirmação reserva o horário, e as duas partes veem o mesmo acordo.</p>
+  </section>
+  {{ pins|json_script:"generators-data" }}
+  <div id="overview-map" class="map" role="region" aria-label="Mapa dos estabelecimentos em Brasília"></div>
+  <p class="muted map-note">Pontos em Brasília e entorno. O pino mostra o estabelecimento, não o coletador.</p>
+  <section>
+    <div class="section-head">
+      <h2>Janelas abertas</h2>
+      <a href="{% url 'window_list' %}">Ver todas</a>
+    </div>
+    {% if windows %}
+      <div class="stack">
+        {% for window in windows %}
+          {% include "windows/_card.html" %}
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="empty">Nenhuma janela aberta no momento.</p>
+    {% endif %}
+  </section>
+  {% if completed %}
+    <section>
+      <div class="section-head">
+        <h2>Coleta realizada</h2>
+      </div>
+      <div class="stack">
+        {% for window in completed %}
+          {% include "windows/_card.html" %}
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+{% endblock %}
