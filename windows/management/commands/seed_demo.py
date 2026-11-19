@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 from zoneinfo import ZoneInfo
 
 from django.core.management.base import BaseCommand
@@ -15,9 +16,12 @@ LUCAS_EMAIL = "lucas.gurgel@a.ucb.br"
 REVIEWER_EMAIL = "acompanhamento@example.com"
 BISTROZIN_EMAIL = "bistrozin.visita@example.com"
 OLD_DEMO_COLLECTOR_EMAIL = "coletador@example.com"
-# Approximate pin for Rua 19 Norte, Águas Claras. The generator can drag it in the profile.
-INFORMAL_LAT = "-15.833500"
-INFORMAL_LNG = "-48.025600"
+# Shop front of Duo Residence Mall, Rua 19 Norte 6/8, loja 13. OpenStreetMap way 681994893.
+INFORMAL_LAT = "-15.838950"
+INFORMAL_LNG = "-48.024180"
+# First deploy sat about 600 m north of that block. Replace only this pair.
+OLD_INFORMAL_LAT = Decimal("-15.833500")
+OLD_INFORMAL_LNG = Decimal("-48.025600")
 # Approximate pin for Rua 24 Norte, lote 13, loja 6, near Águas Claras station.
 BISTROZIN_LAT = "-15.838450"
 BISTROZIN_LNG = "-48.028650"
@@ -50,6 +54,7 @@ class Command(BaseCommand):
             latitude=INFORMAL_LAT,
             longitude=INFORMAL_LNG,
         )
+        self._replace_old_informal_pin(generator)
         lucas = self._profile(
             email=LUCAS_EMAIL,
             password=LUCAS_PASSWORD,
@@ -126,6 +131,12 @@ class Command(BaseCommand):
             agreement.collector = collector
             agreement.save(update_fields=["collector"])
         Agreement.objects.filter(pk=agreement.pk).update(confirmed_at=confirmed)
+
+    def _replace_old_informal_pin(self, profile):
+        if profile.latitude == OLD_INFORMAL_LAT and profile.longitude == OLD_INFORMAL_LNG:
+            profile.latitude = INFORMAL_LAT
+            profile.longitude = INFORMAL_LNG
+            profile.save(update_fields=["latitude", "longitude"])
 
     def _remove_old_demo(self):
         # Only the retired demo account is removed. Volume text is not a key:

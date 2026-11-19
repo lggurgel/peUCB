@@ -1,4 +1,5 @@
 from datetime import date, time, timedelta
+from decimal import Decimal
 
 from django.contrib.messages import get_messages
 from django.core.management import call_command
@@ -145,7 +146,10 @@ class PilotSeedTests(TestCase):
             "Informal Distribuidora de Bebidas e Conveniência",
             "Bistrozin",
         })
-        self.assertFalse(pins["Informal Distribuidora de Bebidas e Conveniência"]["pending"])
+        informal_pin = pins["Informal Distribuidora de Bebidas e Conveniência"]
+        self.assertFalse(informal_pin["pending"])
+        self.assertAlmostEqual(informal_pin["lat"], -15.838950, places=5)
+        self.assertAlmostEqual(informal_pin["lng"], -48.024180, places=5)
         self.assertFalse(pins["Bistrozin"]["pending"])
         self.assertContains(home, '"pending": false')
 
@@ -218,3 +222,22 @@ class PilotSeedTests(TestCase):
         extra.save(update_fields=["status"])
         self.assertFalse(pending("Informal Distribuidora de Bebidas e Conveniência"))
         self.assertFalse(pending("Bistrozin"))
+
+    def test_seed_replaces_only_the_old_informal_pin(self):
+        call_command("seed_demo")
+        informal = Profile.objects.get(user__email="informal@example.com")
+        informal.latitude = "-15.833500"
+        informal.longitude = "-48.025600"
+        informal.save(update_fields=["latitude", "longitude"])
+        call_command("seed_demo")
+        informal.refresh_from_db()
+        self.assertEqual(informal.latitude, Decimal("-15.838950"))
+        self.assertEqual(informal.longitude, Decimal("-48.024180"))
+
+        informal.latitude = "-15.840000"
+        informal.longitude = "-48.020000"
+        informal.save(update_fields=["latitude", "longitude"])
+        call_command("seed_demo")
+        informal.refresh_from_db()
+        self.assertEqual(informal.latitude, Decimal("-15.840000"))
+        self.assertEqual(informal.longitude, Decimal("-48.020000"))

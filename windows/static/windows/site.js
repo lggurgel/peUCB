@@ -8,9 +8,9 @@ function placeIcon() {
   return L.divIcon({
     className: "pin-icon",
     html: '<span class="pin-dot"></span>',
-    iconSize: [22, 22],
-    iconAnchor: [11, 22],
-    popupAnchor: [0, -20],
+    iconSize: [36, 36],
+    iconAnchor: [18, 31],
+    popupAnchor: [0, -30],
   });
 }
 
@@ -18,9 +18,9 @@ function pendingIcon() {
   return L.divIcon({
     className: "pin-icon pin-pending",
     html: '<span class="pin-dot"></span><span class="pin-badge">Pendência</span>',
-    iconSize: [118, 28],
-    iconAnchor: [11, 22],
-    popupAnchor: [0, -20],
+    iconSize: [130, 36],
+    iconAnchor: [18, 31],
+    popupAnchor: [0, -30],
   });
 }
 

@@ -128,13 +128,13 @@ main { max-width: 960px; margin: 0 auto; padding-top: 1.25rem; padding-bottom: 2
 
 .pin-dot {
   display: block;
-  width: 16px;
-  height: 16px;
-  margin-left: 3px;
+  width: 26px;
+  height: 26px;
+  margin-left: 5px;
   border-radius: 50% 50% 50% 0;
   background: var(--blue);
   border: 2px solid #fff;
-  box-shadow: 0 1px 3px rgba(28, 36, 48, 0.35);
+  box-shadow: 0 1px 4px rgba(28, 36, 48, 0.4);
   transform: rotate(-45deg);
 }
 
@@ -142,11 +142,11 @@ main { max-width: 960px; margin: 0 auto; padding-top: 1.25rem; padding-bottom: 2
 
 .pin-badge {
   position: absolute;
-  left: 24px;
-  top: -2px;
+  left: 38px;
+  top: 2px;
   background: var(--amber);
   color: #fff;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   line-height: 1.2;
   padding: 0.15rem 0.45rem;
